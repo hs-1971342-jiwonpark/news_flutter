@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'artcle_card.dart';
+import 'article.dart';
+import 'settings.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -7,119 +9,230 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      theme: ThemeData(primarySwatch: Colors.lightBlue),
+      home: const NewsPage(),
     );
   }
 }
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class NewsPage extends StatefulWidget {
+  const NewsPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<StatefulWidget> createState() => _NewsPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _NewsPageState extends State<NewsPage> {
+  late Future<List<Article>> futureArticles;
+  final List<Article> _articles = [];
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  bool _isLoadingMore = false;
+  String _country = 'kr';
+  String _category = '';
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  final List<Map<String, String>> categories = [
+    {'title': 'Headlines'},
+    {'title': 'Business'},
+    {'title': 'Technology'},
+    {'title': 'Entertainment'},
+    {'title': 'Sports'},
+    {'title': 'Science'}
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    futureArticles = NewsService().fetchArticles();
+    futureArticles.then((articles) {
+      setState(() => _articles.addAll(articles));
     });
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onCategoryTap({String category = ''}) {
+    setState(() {
+      _articles.clear();
+      _currentPage = 1;
+      futureArticles = NewsService().fetchArticles(category: category, country: _country);
+      futureArticles.then((articles) {
+        setState(() => _articles.addAll(articles));
+      });
+    });
+    _category = category;
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text(
+          'News Page',
+          style: TextStyle(fontSize: 20, color: Colors.white),
+        ),
+        backgroundColor: Colors.orangeAccent,
+        centerTitle: true,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                image: DecorationImage(
+                    image: AssetImage('assets/news.jpeg'), fit: BoxFit.cover),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Text(
+                  'News Categories',
+                  style: TextStyle(color: Colors.white, fontSize: 24),
+                ),
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            ...categories.map((category) => ListTile(
+              title: Text(category['title']!),
+              onTap: () {
+                _onCategoryTap(category: category['title']!);
+                Navigator.pop(context);
+              },
+            )),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      body: FutureBuilder<List<Article>>(
+        future: futureArticles,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No Data'));
+          } else {
+            return ListView.builder(
+              controller: _scrollController,
+              itemCount: _articles.length + (_isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _articles.length) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final article = _articles[index];
+                return ArticleCard(
+                    article: article, key: ValueKey(article.title));
+              },
+            );
+          }
+        },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings')
+        ],
+        onTap: ((value) => _onNavItemTap(value, context)),
+      ),
     );
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.extentAfter < 200 && !_isLoadingMore) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+      _loadMoreArticles();
+    }
+  }
+
+  Future<void> _loadMoreArticles() async {
+    _currentPage++;
+    List<Article> articles = await NewsService().fetchArticles(page: _currentPage);
+    setState(() {
+      _articles.addAll(articles);
+      _isLoadingMore = false;
+    });
+  }
+
+  void _onNavItemTap(int value, BuildContext context) {
+    switch (value) {
+      case 0:
+        _showModalBottomSheet(context);
+        break;
+      case 1:
+        break;
+      case 2:
+        break;
+    }
+  }
+
+  void _showModalBottomSheet(BuildContext context) {
+    List<Map<String, String>> items = [
+      {'title': 'Korea', 'image': 'assets/kr.png', 'code': 'kr'},
+      {'title': 'Japan', 'image': 'assets/jp.png', 'code': 'jp'},
+      {'title': 'America', 'image': 'assets/am.png', 'code': 'am'},
+    ];
+
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return Container(
+            width: MediaQuery.of(context).size.width,
+            height: 200,
+            color: Colors.white,
+            child: GridView.count(
+              crossAxisCount: 3,
+              crossAxisSpacing: 4.0,
+              mainAxisSpacing: 4.0,
+              children: List.generate(items.length, (index) {
+                return Container(
+                  color: Colors.white,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _onCountryTap(country: items[index]['code']!);
+                    },
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(items[index]['image']!,
+                              width: 50, height: 50, fit: BoxFit.cover),
+                          Text(items[index]['title']!)
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          );
+        });
+  }
+
+  void _onCountryTap({String country = 'kr'}) {
+    setState(() {
+      _articles.clear();
+      _currentPage = 1;
+      futureArticles = NewsService().fetchArticles(country: country, category: _category);
+      futureArticles.then((value) {
+        setState(() {
+          _articles.addAll(value);
+        });
+      });
+      _country = country;
+    });
   }
 }
