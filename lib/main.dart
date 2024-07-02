@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'artcle_card.dart';
 import 'article.dart';
-import 'settings.dart';
 void main() {
   runApp(const MyApp());
 }

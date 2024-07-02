@@ -43,19 +43,12 @@ class ArticleCard extends StatelessWidget {
 
   }
 
-  Future<void> _launchUrl(String url) async {
+  _launchUrl(String url) async {
     final Uri uri = Uri.parse(url);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication, // 외부 브라우저에서 열기
-        );
-      } else {
-        throw 'Could not launch $url';
-      }
-    } catch (e) {
-      print(e);
+    if(await canLaunchUrl(uri)){
+      await launchUrl(uri);
+    } else{
+      throw 'Could not launch $url';
     }
   }
 }

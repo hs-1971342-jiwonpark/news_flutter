@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key});
+  const SettingsPage({super.key, Key? key});
 
   @override
   State<StatefulWidget> createState() => _SettingsPageState();
@@ -42,7 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           TextFormField(
                             decoration:  InputDecoration(
-                                icon: Icon(Icons.lock),
+                                icon: const Icon(Icons.lock),
                                 hintText: 'Enter your Password',
                                 labelText: 'Password',
                                 suffixIcon: IconButton(
